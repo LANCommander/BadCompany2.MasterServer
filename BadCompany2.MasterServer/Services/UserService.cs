@@ -1,19 +1,29 @@
+using BadCompany2.MasterServer.Data;
+using Microsoft.EntityFrameworkCore;
+
 namespace BadCompany2.MasterServer.Services;
 
-public class UserService
+public class UserService(DatabaseContext context)
 {
     public async Task<User> AddAsync(User user)
     {
+        await context.AddAsync(user);
+        await context.SaveChangesAsync();
+        
         return user;
     }
 
-    public async Task<IEnumerable<Persona>> GetPersonasAsync(Guid userId)
+    public async Task<IEnumerable<Persona>> GetPersonasAsync(int userId)
     {
-        return new Persona[] {};
+        var user = await context.Users.Include(u => u.Personas).FirstOrDefaultAsync(u => u.Id == userId);
+        
+        return user?.Personas ?? new List<Persona>();
     }
 
     public async Task<Persona> GetPersonaAsync(string personaName)
     {
-        return new Persona {Name = personaName};
+        var persona = await context.Personas.FirstOrDefaultAsync(p => p.Name == personaName);
+
+        return persona;
     }
 }

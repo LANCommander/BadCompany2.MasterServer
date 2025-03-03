@@ -1,3 +1,4 @@
+using System.Text;
 using BadCompany2.MasterServer.Consts;
 using BadCompany2.MasterServer.Services;
 
@@ -94,9 +95,7 @@ public class AccountPacketHandler(
         
         var termsOfService = await File.ReadAllTextAsync("TermsOfService.txt");
         
-        // More needs to be processed here
-        
-        SendPacket.SetVariable("tos", termsOfService);
+        SendPacket.SetVariable("tos", Uri.EscapeDataString(termsOfService));
     }
 
     private async Task AddAccountAsync()
@@ -157,7 +156,55 @@ public class AccountPacketHandler(
 
     private async Task LoginAsync()
     {
-        throw new NotImplementedException();
+        var username = IncomingPacket.GetVariable("nuid");
+        var password = IncomingPacket.GetVariable("password");
+
+        if (String.IsNullOrWhiteSpace(username))
+        {
+            var decryptedInfo = ParseLoginPacket(IncomingPacket.GetVariable("encryptedInfo"));
+            
+            username = decryptedInfo.Username;
+            password = decryptedInfo.Password;
+        }
+
+        if (userService.CheckPassword(username, password))
+        {
+            var userLoginKey = 
+        }
+    }
+
+    private (string Username, string Password) ParseLoginPacket(string decryptedInfo)
+    {
+        string username = "";
+        string password = "";
+        
+        if (String.IsNullOrWhiteSpace(decryptedInfo))
+            return ("", ""));
+
+        if (!decryptedInfo.StartsWith(AuthenticationConsts.EncryptedInfoHeader))
+            return ("", "");
+
+        decryptedInfo = decryptedInfo.Substring(AuthenticationConsts.EncryptedInfoHeader.Length);
+
+        int pos;
+
+        while ((pos = decryptedInfo.LastIndexOf('-')) >= decryptedInfo.Length - 3 ||
+               (pos = decryptedInfo.LastIndexOf('_')) >= decryptedInfo.Length - 3)
+        {
+            decryptedInfo = decryptedInfo.Remove(pos, 1).Insert(pos, "=");
+        }
+
+        decryptedInfo = Encoding.UTF8.GetString(Convert.FromBase64String(decryptedInfo));
+
+        pos = decryptedInfo.IndexOf('\f');
+
+        if (pos != -1)
+        {
+            username = decryptedInfo.Substring(0, pos);
+            password = decryptedInfo.Substring(pos + 1);
+        }
+        
+        return (username, password);
     }
 
     private async Task GetPersonasAsync()
@@ -193,7 +240,9 @@ public class AccountPacketHandler(
 
     private async Task AddPersonaAsync()
     {
-        throw new NotImplementedException();
+        var name = IncomingPacket.GetVariable("name");
+        
+        
     }
 
     private async Task DisablePersonaAsync()
